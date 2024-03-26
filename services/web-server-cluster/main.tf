@@ -1,14 +1,3 @@
-terraform {
-  backend "s3" {
-	bucket = "jjterraform-up-and-running-state"
-	key = "stage/services/web-server-cluster/terraform.tfstate"
-	region = "us-east-2"
-	dynamodb_table = "terraform-up-and-running-locks"
-	encrypt = true
-  }
-}
-
-
 resource "aws_launch_configuration" "example" {
 	image_id = "ami-0fb653ca2d3203ac1"
 	instance_type = var.instance_type
@@ -67,12 +56,16 @@ resource "aws_lb_listener" "http" {
 
 resource "aws_security_group" "instance" {
   name = "${var.cluster_name}-instance"
-  ingress {
-	from_port = local.http_port
-	to_port = local.http_port
-	protocol = local.tcp_protocol
-	cidr_blocks = local.all_ips
-  }
+}
+
+resource "aws_security_group_rule" "allow_server_http_inbound" {
+  type              = "ingress"
+  security_group_id = aws_security_group.instance.id
+
+  from_port   = var.server_port
+  to_port     = var.server_port
+  protocol    = local.tcp_protocol
+  cidr_blocks = local.all_ips
 }
 
 resource "aws_security_group" "alb" {
